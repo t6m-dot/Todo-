@@ -1,1 +1,1596 @@
-# マイプロジェクト
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学校業務管理アプリ</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+    
+    :root {
+      --primary-color: #0f172a;
+      --sidebar-bg: #1e293b;
+      --secondary-color: #3b82f6;
+      --secondary-hover: #2563eb;
+      --accent-danger: #ef4444;
+      --accent-warning: #f59e0b;
+      --accent-success: #10b981;
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #334155;
+      --text-muted: #64748b;
+      --sidebar-width: 240px;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif; 
+      display: flex; 
+      height: 100vh; 
+      background-color: var(--bg-color); 
+      color: var(--text-main); 
+      line-height: 1.5;
+    }
+    
+    #sidebar { 
+      width: var(--sidebar-width); 
+      background-color: var(--sidebar-bg); 
+      color: #f8fafc; 
+      display: flex; 
+      flex-direction: column; 
+      flex-shrink: 0; 
+      box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+    }
+    #sidebar .logo { 
+      padding: 24px 20px; 
+      font-size: 1.15rem; 
+      font-weight: 700; 
+      border-bottom: 1px solid rgba(255,255,255,0.08); 
+      letter-spacing: 0.02em;
+    }
+    #sidebar nav { padding: 12px 8px; }
+    #sidebar nav button { 
+      width: 100%; 
+      padding: 11px 16px; 
+      margin-bottom: 4px;
+      background: none; 
+      border: none; 
+      border-radius: var(--radius-sm);
+      color: #cbd5e1; 
+      text-align: left; 
+      font-size: 0.9rem; 
+      font-weight: 500;
+      cursor: pointer; 
+      transition: all 0.2s ease; 
+    }
+    #sidebar nav button:hover { 
+      background-color: rgba(255,255,255,0.08); 
+      color: #ffffff; 
+    }
+    #sidebar nav button.active { 
+      background-color: var(--secondary-color); 
+      color: #ffffff; 
+      font-weight: 600; 
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    }
+    
+    #main { flex: 1; overflow-y: auto; padding: 32px 40px; }
+    .page { display: none; }
+    .page.active { display: block; }
+    
+    h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 24px; color: var(--primary-color); letter-spacing: -0.01em; }
+    h2 { font-size: 1.15rem; font-weight: 600; margin-bottom: 16px; color: #1e293b; }
+    
+    .alert-banner { 
+      background-color: #fef3c7; 
+      color: #92400e; 
+      border: 1px solid #fde68a; 
+      padding: 14px 20px; 
+      border-radius: var(--radius-md); 
+      margin-bottom: 24px; 
+      display: none; 
+      justify-content: space-between; 
+      align-items: center; 
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 28px; }
+    .card { 
+      background: var(--card-bg); 
+      border-radius: var(--radius-md); 
+      padding: 20px; 
+      box-shadow: var(--shadow-sm); 
+      border: 1px solid var(--border-color);
+      border-top: 4px solid var(--secondary-color); 
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .card.danger { border-top-color: var(--accent-danger); }
+    .card.warning { border-top-color: var(--accent-warning); }
+    .card-title { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.03em; }
+    .card-count { font-size: 2rem; font-weight: 700; color: var(--primary-color); }
+    
+    .btn { 
+      padding: 9px 18px; 
+      border: none; 
+      border-radius: var(--radius-sm); 
+      background-color: var(--secondary-color); 
+      color: #fff; 
+      cursor: pointer; 
+      font-size: 0.875rem; 
+      font-weight: 500;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+    .btn:hover { background-color: var(--secondary-hover); transform: translateY(-1px); }
+    .btn-secondary { background-color: #64748b; }
+    .btn-secondary:hover { background-color: #475569; }
+    .btn-danger { background-color: var(--accent-danger); }
+    .btn-danger:hover { background-color: #dc2626; }
+    .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+    
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 0.85rem; margin-bottom: 6px; font-weight: 600; color: #475569; }
+    .form-group input, .form-group select, .form-group textarea { 
+      width: 100%; 
+      padding: 10px 12px; 
+      border: 1px solid var(--border-color); 
+      border-radius: var(--radius-sm); 
+      font-size: 0.9rem; 
+      background-color: #ffffff;
+      color: var(--text-main);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: var(--secondary-color);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    
+    .filter-panel { 
+      background: var(--card-bg); 
+      padding: 20px; 
+      border-radius: var(--radius-md); 
+      margin-bottom: 24px; 
+      box-shadow: var(--shadow-sm); 
+      border: 1px solid var(--border-color);
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+      gap: 14px; 
+    }
+
+    .todo-table { 
+      width: 100%; 
+      border-collapse: separate; 
+      border-spacing: 0;
+      background: var(--card-bg); 
+      border-radius: var(--radius-md); 
+      overflow: hidden; 
+      box-shadow: var(--shadow-sm); 
+      border: 1px solid var(--border-color);
+      margin-bottom: 24px; 
+    }
+    .todo-table th, .todo-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.875rem; }
+    .todo-table th { background-color: #f1f5f9; font-weight: 600; color: #475569; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+    .todo-table tr:last-child td { border-bottom: none; }
+    .todo-table tr.is-overdue { background-color: #fef2f2; }
+    .todo-table tr.is-completed { opacity: 0.55; text-decoration: line-through; background-color: #f8fafc; }
+    
+    .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: #fff; display: inline-block; }
+    .badge-high { background-color: var(--accent-danger); }
+    .badge-mid { background-color: var(--accent-warning); }
+    .badge-low { background-color: #94a3b8; }
+    .badge-repeat { background-color: #8b5cf6; margin-left: 6px; }
+
+    /* 大型カレンダー用スタイル */
+    .dashboard-layout { display: flex; flex-direction: column; gap: 28px; margin-bottom: 28px; }
+    .calendar-box { 
+      background: var(--card-bg); 
+      border-radius: var(--radius-lg); 
+      padding: 24px; 
+      box-shadow: var(--shadow-md); 
+      border: 1px solid var(--border-color);
+      width: 100%; 
+    }
+    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; font-size: 0.85rem; }
+    .calendar-grid div.day-cell { 
+      border: 1px solid var(--border-color); 
+      border-radius: var(--radius-sm); 
+      padding: 8px; 
+      min-height: 100px; 
+      max-height: 135px; 
+      overflow-y: auto; 
+      background: #ffffff; 
+      cursor: pointer; 
+      transition: all 0.2s ease; 
+    }
+    .calendar-grid div.day-cell:hover { background: #f1f5f9; border-color: var(--secondary-color); transform: scale(1.01); }
+    .calendar-grid div.day-cell.today { background: #eff6ff; border-color: #93c5fd; font-weight: 600; }
+    .calendar-grid .day-number { font-weight: 700; font-size: 0.85rem; margin-bottom: 6px; color: #334155; }
+    .calendar-grid .day-name { font-weight: 600; background: #f1f5f9; color: #475569; text-align: center; padding: 10px 0; border-radius: var(--radius-sm); }
+    
+    .cal-chip { font-size: 0.72rem; padding: 3px 6px; border-radius: 4px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; font-weight: 500; }
+    .cal-chip-lesson { background-color: #ecfdf5; color: #047857; border-left: 3px solid var(--accent-success); }
+    .cal-chip-event { background-color: #fffbeb; color: #b45309; border-left: 3px solid var(--accent-warning); }
+    .cal-chip-todo { background-color: #eff6ff; color: #1d4ed8; border-left: 3px solid var(--secondary-color); }
+
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: var(--card-bg); padding: 30px; border-radius: var(--radius-lg); width: 680px; max-width: 92%; max-height: 88vh; overflow-y: auto; box-shadow: var(--shadow-lg); border: 1px solid var(--border-color); }
+    .attachment-list { list-style: none; margin-top: 8px; }
+    .attachment-list li { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 6px; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+  <div id="sidebar">
+    <div class="logo">🏫 学校業務管理</div>
+    <nav>
+      <button class="nav-btn active" onclick="switchPage('dashboard')">🏠 ホーム</button>
+      <button class="nav-btn" onclick="switchPage('todo')">☑️ Todo・検索</button>
+      <button class="nav-btn" onclick="switchPage('folder')">📁 業務フォルダ</button>
+      <button class="nav-btn" onclick="switchPage('records')">📝 業務記録</button>
+      <button class="nav-btn" onclick="switchPage('template')">📋 テンプレート</button>
+      <button class="nav-btn" onclick="switchPage('manual')">📖 マニュアル</button>
+      <button class="nav-btn" onclick="switchPage('settings')">⚙️ 設定・バックアップ</button>
+    </nav>
+  </div>
+
+  <div id="main">
+
+    <div id="backup-alert" class="alert-banner">
+      <span>⚠️ 最終バックアップから30日以上経過しています。データの消失を防ぐためバックアップを作成してください。</span>
+      <button class="btn btn-sm" onclick="switchPage('settings')">バックアップ画面へ</button>
+    </div>
+
+    <!-- 1. ホーム -->
+    <div id="page-dashboard" class="page active">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>ホーム</h1>
+        <div>
+          <button class="btn btn-secondary" onclick="openWeeklyLessonModal()">📅 毎週の時間割登録・編集</button>
+          <button class="btn" onclick="openTodoModal()">＋ 新規Todo登録</button>
+        </div>
+      </div>
+
+      <div class="card-grid">
+        <div class="card danger">
+          <div class="card-title">期限超過のTodo</div>
+          <div class="card-count" id="count-overdue">0</div>
+        </div>
+        <div class="card warning">
+          <div class="card-title">今日の作業予定</div>
+          <div class="card-count" id="count-today">0</div>
+        </div>
+        <div class="card">
+          <div class="card-title">期限が近いTodo (3日以内)</div>
+          <div class="card-count" id="count-near">0</div>
+        </div>
+      </div>
+
+      <!-- 大型カレンダー -->
+      <div class="dashboard-layout">
+        <div class="calendar-box">
+          <div class="calendar-header">
+            <button class="btn btn-sm btn-secondary" onclick="changeMonth(-1)">◀ 前月</button>
+            <h2 id="calendar-month-year" style="margin:0;">2026年 10月</h2>
+            <button class="btn btn-sm btn-secondary" onclick="changeMonth(1)">次月 ▶</button>
+          </div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; text-align:right;">
+            凡例: <span class="cal-chip cal-chip-lesson" style="display:inline-block;">🟢 授業（時限順）</span> &nbsp;
+            <span class="cal-chip cal-chip-event" style="display:inline-block;">🟠 予定・行事</span> &nbsp;
+            <span class="cal-chip cal-chip-todo" style="display:inline-block;">🔵 Todo</span>
+          </div>
+          <div class="calendar-grid" id="calendar-body"></div>
+        </div>
+
+        <div>
+          <h2>優先対応・今日のTodo</h2>
+          <table class="todo-table">
+            <thead>
+              <tr>
+                <th width="40">完了</th>
+                <th>タイトル</th>
+                <th>期限</th>
+                <th>優先度</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-todo-list"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr style="margin: 30px 0 20px; border: none; border-top: 1px solid var(--border-color);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2>全Todo一覧</h2>
+        <div>
+          <label><input type="radio" name="home-todo-filter" value="active" checked onchange="refreshAllViews()"> 未完了</label>&nbsp;&nbsp;
+          <label><input type="radio" name="home-todo-filter" value="completed" onchange="refreshAllViews()"> 完了済み</label>&nbsp;&nbsp;
+          <label><input type="radio" name="home-todo-filter" value="all" onchange="refreshAllViews()"> すべて</label>
+        </div>
+      </div>
+
+      <table class="todo-table">
+        <thead>
+          <tr>
+            <th width="40">完了</th>
+            <th>タイトル</th>
+            <th>フォルダ</th>
+            <th>作業予定日</th>
+            <th>期限</th>
+            <th>優先度</th>
+            <th>担当者</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="home-all-todo-list"></tbody>
+      </table>
+    </div>
+
+    <!-- 2. Todo一覧・検索 -->
+    <div id="page-todo" class="page">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>Todo一覧 & 横断検索</h1>
+        <button class="btn" onclick="openTodoModal()">＋ 新規Todo登録</button>
+      </div>
+
+      <div class="filter-panel">
+        <div>
+          <label style="font-size:0.8rem; font-weight:bold;">キーワード検索</label>
+          <input type="text" id="search-keyword" placeholder="タイトル・記録・資料名..." oninput="renderTodoList()">
+        </div>
+        <div>
+          <label style="font-size:0.8rem; font-weight:bold;">フォルダ絞り込み</label>
+          <select id="search-folder" onchange="renderTodoList()"><option value="">すべて</option></select>
+        </div>
+        <div>
+          <label style="font-size:0.8rem; font-weight:bold;">状態</label>
+          <select id="search-status" onchange="renderTodoList()">
+            <option value="all">すべて</option>
+            <option value="active" selected>未完了のみ</option>
+            <option value="completed">完了済みのみ</option>
+            <option value="overdue">期限超過のみ</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.8rem; font-weight:bold;">優先度</label>
+          <select id="search-priority" onchange="renderTodoList()">
+            <option value="">すべて</option>
+            <option value="高">高</option>
+            <option value="中">中</option>
+            <option value="低">低</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.8rem; font-weight:bold;">記録・資料フィルタ</label>
+          <select id="search-has-meta" onchange="renderTodoList()">
+            <option value="">すべて</option>
+            <option value="record">業務記録あり</option>
+            <option value="attachment">関連資料あり</option>
+          </select>
+        </div>
+      </div>
+
+      <table class="todo-table">
+        <thead>
+          <tr>
+            <th width="40">完了</th>
+            <th>タイトル</th>
+            <th>フォルダ</th>
+            <th>作業予定日</th>
+            <th>期限</th>
+            <th>優先度</th>
+            <th>担当者</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="full-todo-list"></tbody>
+      </table>
+    </div>
+
+    <!-- 3. 業務フォルダ管理 -->
+    <div id="page-folder" class="page">
+      <h1>業務フォルダ管理</h1>
+      <div style="background: var(--card-bg); padding: 24px; border-radius: var(--radius-md); max-width: 600px; margin-bottom: 24px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+        <h2>新規フォルダ追加</h2>
+        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+          <input type="text" id="new-folder-name" placeholder="例: 会計" style="flex: 1;">
+          <select id="new-folder-parent" style="width: 200px;">
+            <option value="">（親フォルダなし）</option>
+          </select>
+        </div>
+        <button class="btn" onclick="addFolder()">フォルダを追加</button>
+      </div>
+
+      <h2>登録済みフォルダ構造</h2>
+      <table class="todo-table" style="max-width: 600px;">
+        <thead>
+          <tr>
+            <th>フォルダ表示名</th>
+            <th>親フォルダ</th>
+            <th width="100">操作</th>
+          </tr>
+        </thead>
+        <tbody id="folder-list"></tbody>
+      </table>
+    </div>
+
+    <!-- 4. 業務記録 -->
+    <div id="page-records" class="page">
+      <h1>業務フォルダ別振り返り記録</h1>
+      <div style="background: var(--card-bg); padding: 24px; border-radius: var(--radius-md); margin-bottom: 24px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+        <div style="display: flex; gap: 15px; margin-bottom: 18px;">
+          <div style="flex: 1;">
+            <label style="font-weight: bold; font-size: 0.85rem;">対象フォルダ</label>
+            <select id="record-folder-select" onchange="loadFolderRecord()"></select>
+          </div>
+          <div style="width: 150px;">
+            <label style="font-weight: bold; font-size: 0.85rem;">年度</label>
+            <input type="number" id="record-year-input" value="2026" onchange="loadFolderRecord()">
+          </div>
+        </div>
+
+        <form id="folderRecordForm" onsubmit="saveFolderRecord(event)">
+          <div class="form-group"><label>年間総括</label><textarea id="fr-summary" rows="2"></textarea></div>
+          <div class="form-group"><label>成果・結果</label><textarea id="fr-result" rows="2"></textarea></div>
+          <div class="form-group"><label>反省点</label><textarea id="fr-reflection" rows="2"></textarea></div>
+          <div class="form-group"><label>改善提案・次年度への引き継ぎ</label><textarea id="fr-improvement" rows="2"></textarea></div>
+          <button type="submit" class="btn">振り返りを保存</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 5. テンプレート管理 -->
+    <div id="page-template" class="page">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>Todoテンプレート管理</h1>
+        <button class="btn" onclick="openTemplateModal()">＋ テンプレート作成</button>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">定例業務をテンプレート登録しておくと簡単にTodo化できます。</p>
+      
+      <table class="todo-table">
+        <thead>
+          <tr>
+            <th>テンプレート名</th>
+            <th>デフォルトフォルダ</th>
+            <th>優先度</th>
+            <th width="200">操作</th>
+          </tr>
+        </thead>
+        <tbody id="template-list"></tbody>
+      </table>
+    </div>
+
+    <!-- 6. マニュアル -->
+    <div id="page-manual" class="page"><h1>マニュアル</h1><p>第3段階で実装予定です。</p></div>
+
+    <!-- 7. 設定・バックアップ -->
+    <div id="page-settings" class="page">
+      <h1>設定・バックアップ</h1>
+      <div style="background: var(--card-bg); padding: 24px; border-radius: var(--radius-md); max-width: 500px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+        <h2>データバックアップ</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">全データをZIP保存します。</p>
+        <button class="btn" onclick="downloadZip()">ZIPバックアップを保存</button>
+        <div id="last-backup-text" style="font-size: 0.8rem; color: #888; margin-top: 8px;"></div>
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border-color);">
+        <h2>データ復元</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">バックアップZIPを選択して復元します。</p>
+        <input type="file" id="zipFileInput" accept=".zip" onchange="restoreZip(event)">
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Todo Modal -->
+  <div id="todoModal" class="modal">
+    <div class="modal-content">
+      <h2 id="modalTitle">新規Todo・業務記録</h2>
+      <form id="todoForm" onsubmit="saveTodo(event)">
+        <input type="hidden" id="todo-id">
+        <div class="form-group"><label>タイトル（必須）</label><input type="text" id="todo-title" required placeholder="例: 文化祭の準備"></div>
+        <div style="display: flex; gap: 10px;">
+          <div class="form-group" style="flex: 1;"><label>業務フォルダ</label><select id="todo-folder"></select></div>
+          <div class="form-group" style="flex: 1;"><label>繰り返し</label><select id="todo-repeat"><option value="none">なし</option><option value="monthly">毎月</option><option value="yearly">毎年</option></select></div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <div class="form-group" style="flex: 1;"><label>作業予定日</label><input type="date" id="todo-scheduledDate"></div>
+          <div class="form-group" style="flex: 1;"><label>提出・完了期限</label><input type="date" id="todo-dueDate"></div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <div class="form-group" style="flex: 1;"><label>優先度</label><select id="todo-priority"><option value="高">高</option><option value="中" selected>中</option><option value="低">低</option></select></div>
+          <div class="form-group" style="flex: 1;"><label>担当者</label><input type="text" id="todo-assignee" placeholder="自分"></div>
+        </div>
+        <hr style="margin: 18px 0; border: none; border-top: 1px solid var(--border-color);">
+        <h3>詳細業務記録</h3>
+        <div class="form-group"><label>実施内容</label><textarea id="todo-record-content" rows="2"></textarea></div>
+        <div style="display: flex; gap: 10px;">
+          <div class="form-group" style="flex: 1;"><label>成果・結果</label><textarea id="todo-record-result" rows="2"></textarea></div>
+          <div class="form-group" style="flex: 1;"><label>反省点</label><textarea id="todo-record-reflection" rows="2"></textarea></div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <div class="form-group" style="flex: 1;"><label>改善案</label><textarea id="todo-record-improvement" rows="2"></textarea></div>
+          <div class="form-group" style="flex: 1;"><label>引き継ぎ事項</label><textarea id="todo-record-handover" rows="2"></textarea></div>
+        </div>
+        <hr style="margin: 18px 0; border: none; border-top: 1px solid var(--border-color);">
+        <h3>関連資料</h3>
+        <div class="form-group">
+          <label>外部URL</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="url" id="link-url-input" placeholder="https://drive.google.com/...">
+            <input type="text" id="link-title-input" placeholder="リンク名" style="width: 150px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addUrlLink()">追加</button>
+          </div>
+          <ul id="url-list-display" class="attachment-list"></ul>
+        </div>
+        <div class="form-group">
+          <label>添付ファイル</label>
+          <input type="file" id="file-upload-input" onchange="handleFileUpload(event)">
+          <ul id="file-list-display" class="attachment-list"></ul>
+        </div>
+        <div style="text-align: right; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeTodoModal()">キャンセル</button>
+          <button type="submit" class="btn">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 日付詳細 Modal -->
+  <div id="dayDetailModal" class="modal">
+    <div class="modal-content">
+      <h2 id="dayDetailTitle">日付の詳細</h2>
+      
+      <h3>📌 登録されている予定・授業</h3>
+      <div id="day-schedule-list" style="margin-bottom: 20px;"></div>
+
+      <hr style="margin: 18px 0; border: none; border-top: 1px solid var(--border-color);">
+      
+      <h3>＋ 新しい予定を追加 / 授業の変更</h3>
+      <form id="eventForm" onsubmit="saveCalendarEvent(event)">
+        <input type="hidden" id="event-date">
+        <div style="display: flex; gap: 10px;">
+          <div class="form-group" style="flex: 1;">
+            <label>種別</label>
+            <select id="event-type">
+              <option value="event">予定・行事</option>
+              <option value="lesson">授業（個別設定・変更）</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 2;">
+            <label>内容</label>
+            <input type="text" id="event-title" required placeholder="例: 定期テスト / 1限: 数学">
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <button type="submit" class="btn btn-sm">追加する</button>
+        </div>
+      </form>
+
+      <div style="text-align: right; margin-top: 24px;">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('dayDetailModal').style.display='none'">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 毎週の時間割登録 Modal -->
+  <div id="weeklyLessonModal" class="modal">
+    <div class="modal-content">
+      <h2>毎週の時間割（基本スケジュール）登録・編集</h2>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 18px;">基本の毎週の時間割を登録・編集できます。特定の週のテストや行事による休講はカレンダー日付から個別にカット可能です。</p>
+      
+      <form id="weeklyForm" onsubmit="saveWeeklyLesson(event)">
+        <input type="hidden" id="weekly-id">
+        <div style="display: flex; gap: 10px; align-items: flex-end;">
+          <div class="form-group" style="width: 120px; margin-bottom:0;">
+            <label>曜日</label>
+            <select id="weekly-day">
+              <option value="1">月曜日</option>
+              <option value="2">火曜日</option>
+              <option value="3">水曜日</option>
+              <option value="4">木曜日</option>
+              <option value="5">金曜日</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1; margin-bottom:0;">
+            <label>授業名・時限</label>
+            <input type="text" id="weekly-title" required placeholder="例: 1限 2年1組 数学">
+          </div>
+          <div>
+            <button type="submit" id="weekly-submit-btn" class="btn btn-sm">追加する</button>
+            <button type="button" id="weekly-cancel-btn" class="btn btn-sm btn-secondary" style="display:none;" onclick="resetWeeklyForm()">キャンセル</button>
+          </div>
+        </div>
+      </form>
+
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border-color);">
+      <h3>登録済みの時間割</h3>
+      <ul id="weekly-lesson-list" class="attachment-list"></ul>
+
+      <div style="text-align: right; margin-top: 24px;">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('weeklyLessonModal').style.display='none'">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- テンプレート Modal -->
+  <div id="templateModal" class="modal">
+    <div class="modal-content">
+      <h2>テンプレート登録</h2>
+      <form id="templateForm" onsubmit="saveTemplate(event)">
+        <div class="form-group"><label>テンプレート名（必須）</label><input type="text" id="tpl-title" required placeholder="例: 月末会計処理"></div>
+        <div class="form-group"><label>デフォルトフォルダ</label><select id="tpl-folder"></select></div>
+        <div class="form-group"><label>優先度</label><select id="tpl-priority"><option value="高">高</option><option value="中" selected>中</option><option value="低">低</option></select></div>
+        <div class="form-group"><label>作業メモ標準形式</label><textarea id="tpl-memo" rows="3" placeholder="標準の手順など"></textarea></div>
+        <div style="text-align: right; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('templateModal').style.display='none'">キャンセル</button>
+          <button type="submit" class="btn">登録</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let db;
+    let currentLinks = [];
+    let currentFiles = [];
+    let currentCalDate = new Date();
+
+    const defaultFolders = [
+      { name: "授業", parent: "" },
+      { name: "クラス運営", parent: "" },
+      { name: "グループ業務", parent: "" },
+      { name: "学校行事", parent: "" },
+      { name: "その他", parent: "" }
+    ];
+
+    const request = indexedDB.open("SchoolTaskDB", 10);
+
+    request.onupgradeneeded = function(e) {
+      db = e.target.result;
+      const stores = ["todos", "folders", "folderRecords", "templates", "events", "weeklyLessons", "cancelledWeekly", "settings"];
+      stores.forEach(name => {
+        if (!db.objectStoreNames.contains(name)) {
+          const keyPath = (name === "folders") ? "name" : (name === "settings") ? "key" : "id";
+          db.createObjectStore(name, { keyPath });
+        }
+      });
+    };
+
+    request.onsuccess = function(e) {
+      db = e.target.result;
+      initFolders();
+      checkBackupStatus();
+      refreshAllViews();
+    };
+
+    request.onerror = function() {
+      alert("データベースの接続に失敗しました。");
+    };
+
+    function initFolders() {
+      try {
+        const tx = db.transaction(["folders"], "readwrite");
+        const store = tx.objectStore("folders");
+        store.getAll().onsuccess = function(e) {
+          if ((e.target.result || []).length === 0) defaultFolders.forEach(f => store.put(f));
+        };
+      } catch (err) { console.error(err); }
+    }
+
+    function checkBackupStatus() {
+      try {
+        db.transaction(["settings"], "readonly").objectStore("settings").get("lastBackup").onsuccess = function(e) {
+          const last = e.target.result ? new Date(e.target.result.value) : null;
+          if (last) {
+            document.getElementById("last-backup-text").textContent = `最終バックアップ: ${last.toLocaleString('ja-JP')}`;
+            if ((new Date() - last) / (1000 * 60 * 60 * 24) >= 30) document.getElementById("backup-alert").style.display = "flex";
+          } else {
+            document.getElementById("last-backup-text").textContent = "バックアップ未作成";
+          }
+        };
+      } catch (err) { console.error(err); }
+    }
+
+    function switchPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`page-${pageId}`).classList.add('active');
+      if (event && event.currentTarget) event.currentTarget.classList.add('active');
+
+      if (pageId === 'folder') renderFolderList();
+      if (pageId === 'template') renderTemplateList();
+      refreshAllViews();
+    }
+
+    function getPeriodOrderNum(str) {
+      if (!str) return 999;
+      const normalizedStr = str.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+      
+      const periodMatch = normalizedStr.match(/([0-9]+)\s*限/);
+      if (periodMatch) {
+        return parseInt(periodMatch[1], 10);
+      }
+
+      const timeMatch = normalizedStr.match(/([0-9]{1,2}):([0-9]{2})/);
+      if (timeMatch) {
+        return 100 + (parseInt(timeMatch[1], 10) * 60 + parseInt(timeMatch[2], 10));
+      }
+
+      return 500;
+    }
+
+    function safeGetAll(storeName, callback) {
+      if (!db || !db.objectStoreNames.contains(storeName)) {
+        callback([]);
+        return;
+      }
+      try {
+        const tx = db.transaction([storeName], "readonly");
+        const req = tx.objectStore(storeName).getAll();
+        req.onsuccess = (e) => callback(e.target.result || []);
+        req.onerror = () => callback([]);
+      } catch (err) {
+        callback([]);
+      }
+    }
+
+    function refreshAllViews() {
+      if (!db) return;
+      updateFolderSelectOptions();
+
+      safeGetAll("todos", (todos) => {
+        renderDashboard(todos);
+        renderHomeAllTodoList(todos);
+        renderTodoList(todos);
+
+        safeGetAll("events", (events) => {
+          safeGetAll("weeklyLessons", (weeklyLessons) => {
+            safeGetAll("cancelledWeekly", (cancelledWeekly) => {
+              renderCalendar(todos, events, weeklyLessons, cancelledWeekly);
+            });
+          });
+        });
+      });
+    }
+
+    function updateFolderSelectOptions() {
+      safeGetAll("folders", (folders) => {
+        const targetIds = ["todo-folder", "search-folder", "record-folder-select", "tpl-folder"];
+        
+        targetIds.forEach(id => {
+          const select = document.getElementById(id);
+          if (!select) return;
+          const currentVal = select.value;
+          select.innerHTML = id === "search-folder" ? '<option value="">すべて</option>' : '';
+
+          folders.forEach(f => {
+            const displayName = f.parent ? `${f.parent} / ${f.name}` : f.name;
+            select.innerHTML += `<option value="${escapeHtml(displayName)}">${escapeHtml(displayName)}</option>`;
+          });
+          if (currentVal) select.value = currentVal;
+        });
+
+        const parentSel = document.getElementById("new-folder-parent");
+        if (parentSel) {
+          parentSel.innerHTML = '<option value="">（親フォルダなし）</option>';
+          folders.filter(f => !f.parent).forEach(f => {
+            parentSel.innerHTML += `<option value="${escapeHtml(f.name)}">${escapeHtml(f.name)}</option>`;
+          });
+        }
+      });
+    }
+function renderDashboard(todos) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      let overdueCount = 0, todayCount = 0, nearCount = 0;
+
+      const priorityTodos = todos.filter(t => {
+        if (t.status === 'completed') return false;
+        const isOverdue = t.dueDate && t.dueDate < todayStr;
+        const isToday = t.scheduledDate === todayStr;
+        let isNear = false;
+        if (t.dueDate) {
+          const diffDays = (new Date(t.dueDate) - new Date(todayStr)) / (1000 * 60 * 60 * 24);
+          if (diffDays >= 0 && diffDays <= 3) isNear = true;
+        }
+
+        if (isOverdue) overdueCount++;
+        if (isToday) todayCount++;
+        if (isNear) nearCount++;
+
+        return isOverdue || isToday || isNear;
+      });
+
+      document.getElementById("count-overdue").textContent = overdueCount;
+      document.getElementById("count-today").textContent = todayCount;
+      document.getElementById("count-near").textContent = nearCount;
+
+      const tbody = document.getElementById("dashboard-todo-list");
+      if (tbody) {
+        tbody.innerHTML = "";
+        priorityTodos.sort(sortRule).forEach(t => tbody.appendChild(createTodoRow(t, false)));
+      }
+    }
+
+    function renderHomeAllTodoList(todos) {
+      const filterEl = document.querySelector('input[name="home-todo-filter"]:checked');
+      const filter = filterEl ? filterEl.value : 'active';
+      const tbody = document.getElementById("home-all-todo-list");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      let filtered = todos;
+      if (filter === 'active') filtered = todos.filter(t => t.status !== 'completed');
+      if (filter === 'completed') filtered = todos.filter(t => t.status === 'completed');
+
+      filtered.sort(sortRule).forEach(t => tbody.appendChild(createTodoRow(t, true)));
+    }
+
+    function renderCalendar(todos, events, weeklyLessons, cancelledWeekly) {
+      const year = currentCalDate.getFullYear();
+      const month = currentCalDate.getMonth();
+      document.getElementById("calendar-month-year").textContent = `${year}年 ${month + 1}月`;
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const calBody = document.getElementById("calendar-body");
+      if (!calBody) return;
+      calBody.innerHTML = "";
+
+      const days = ["日", "月", "火", "水", "木", "金", "土"];
+      days.forEach(d => calBody.innerHTML += `<div class="day-name">${d}</div>`);
+
+      for (let i = 0; i < firstDay; i++) calBody.innerHTML += `<div></div>`;
+
+      for (let day = 1; day <= lastDate; day++) {
+        const monthStr = String(month + 1).padStart(2, '0');
+        const dayStr = String(day).padStart(2, '0');
+        const dateKey = `${year}-${monthStr}-${dayStr}`;
+        const dayOfWeek = new Date(year, month, day).getDay();
+
+        const isToday = dateKey === todayStr;
+
+        const dateEvents = events.filter(e => e.date === dateKey);
+        
+        const activeWeeklyLessons = weeklyLessons.filter(w => {
+          if (String(w.dayOfWeek) !== String(dayOfWeek)) return false;
+          return !cancelledWeekly.some(c => c.date === dateKey && c.weeklyId === w.id);
+        });
+
+        const dayTodos = todos.filter(t => t.scheduledDate === dateKey || t.dueDate === dateKey);
+
+        let dayChips = [];
+
+        activeWeeklyLessons.forEach(w => {
+          dayChips.push({
+            type: 'lesson',
+            title: w.title,
+            order: getPeriodOrderNum(w.title),
+            html: `<span class="cal-chip cal-chip-lesson" title="${escapeHtml(w.title)}">🟢 ${escapeHtml(w.title)}</span>`
+          });
+        });
+
+        dateEvents.forEach(ev => {
+          const isLesson = ev.type === 'lesson';
+          dayChips.push({
+            type: ev.type,
+            title: ev.title,
+            order: getPeriodOrderNum(ev.title),
+            html: `<span class="cal-chip ${isLesson ? 'cal-chip-lesson' : 'cal-chip-event'}" title="${escapeHtml(ev.title)}">${isLesson ? '🟢' : '🟠'} ${escapeHtml(ev.title)}</span>`
+          });
+        });
+
+        dayTodos.forEach(t => {
+          dayChips.push({
+            type: 'todo',
+            title: t.title,
+            order: 900,
+            html: `<span class="cal-chip cal-chip-todo" title="${escapeHtml(t.title)}">🔵 ${escapeHtml(t.title)}</span>`
+          });
+        });
+
+        dayChips.sort((a, b) => a.order - b.order);
+
+        const classes = ["day-cell"];
+        if (isToday) classes.push("today");
+
+        calBody.innerHTML += `
+          <div class="${classes.join(' ')}" onclick="openDayDetailModal('${dateKey}', ${dayOfWeek})">
+            <div class="day-number">${day}</div>
+            ${dayChips.map(c => c.html).join('')}
+          </div>`;
+      }
+    }
+
+    function changeMonth(delta) {
+      currentCalDate.setMonth(currentCalDate.getMonth() + delta);
+      refreshAllViews();
+    }
+
+    function openDayDetailModal(dateKey, dayOfWeek) {
+      document.getElementById("dayDetailTitle").textContent = `📅 ${dateKey} の予定・授業`;
+      document.getElementById("event-date").value = dateKey;
+      document.getElementById("eventForm").reset();
+
+      safeGetAll("todos", (todos) => {
+        safeGetAll("events", (events) => {
+          safeGetAll("weeklyLessons", (weeklyLessons) => {
+            safeGetAll("cancelledWeekly", (cancelledWeekly) => {
+              const listDiv = document.getElementById("day-schedule-list");
+              listDiv.innerHTML = "";
+
+              const dateEvents = events.filter(e => e.date === dateKey);
+              const dayWeeklyLessons = weeklyLessons.filter(w => String(w.dayOfWeek) === String(dayOfWeek));
+              const dayTodos = todos.filter(t => t.scheduledDate === dateKey || t.dueDate === dateKey);
+
+              let items = [];
+
+              dayWeeklyLessons.forEach(w => {
+                const isCancelled = cancelledWeekly.some(c => c.date === dateKey && c.weeklyId === w.id);
+                if (isCancelled) {
+                  items.push({
+                    order: getPeriodOrderNum(w.title),
+                    html: `
+                      <div style="display:flex; justify-content:space-between; align-items:center; background:#f1f5f9; padding:8px 12px; border-radius:6px; margin-bottom:6px; font-size:0.85rem; opacity:0.6; text-decoration:line-through; border:1px solid var(--border-color);">
+                        <span>⚪ <strong>[休講・カット]</strong> ${escapeHtml(w.title)}</span>
+                        <button class="btn btn-secondary btn-sm" onclick="restoreWeeklyLesson('${dateKey}', '${w.id}', ${dayOfWeek})">カット解除</button>
+                      </div>`
+                  });
+                } else {
+                  items.push({
+                    order: getPeriodOrderNum(w.title),
+                    html: `
+                      <div style="display:flex; justify-content:space-between; align-items:center; background:#ecfdf5; padding:8px 12px; border-radius:6px; margin-bottom:6px; font-size:0.85rem; border:1px solid #a7f3d0;">
+                        <span>🟢 <strong>[時間割]</strong> ${escapeHtml(w.title)}</span>
+                        <button class="btn btn-danger btn-sm" onclick="cancelWeeklyLessonForDate('${dateKey}', '${w.id}', ${dayOfWeek})">この日のみ休講・カット</button>
+                      </div>`
+                  });
+                }
+              });
+
+              dateEvents.forEach(ev => {
+                const color = ev.type === 'event' ? '#fffbeb' : '#ecfdf5';
+                const borderColor = ev.type === 'event' ? '#fde68a' : '#a7f3d0';
+                const icon = ev.type === 'event' ? '🟠 [予定]' : '🟢 [授業 (変更分)]';
+                items.push({
+                  order: getPeriodOrderNum(ev.title),
+                  html: `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:${color}; padding:8px 12px; border-radius:6px; margin-bottom:6px; font-size:0.85rem; border:1px solid ${borderColor};">
+                      <span>${icon} ${escapeHtml(ev.title)}</span>
+                      <button class="btn btn-danger btn-sm" onclick="deleteCalendarEvent('${ev.id}', '${dateKey}', ${dayOfWeek})">削除</button>
+                    </div>`
+                });
+              });
+
+              dayTodos.forEach(t => {
+                items.push({
+                  order: 900,
+                  html: `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:#eff6ff; padding:8px 12px; border-radius:6px; margin-bottom:6px; font-size:0.85rem; border:1px solid #bfdbfe;">
+                      <span>🔵 <strong>[Todo]</strong> ${escapeHtml(t.title)} (期限: ${t.dueDate||'なし'})</span>
+                    </div>`
+                });
+              });
+
+              items.sort((a, b) => a.order - b.order);
+
+              if (items.length === 0) {
+                listDiv.innerHTML = "<p style='font-size:0.85rem; color:var(--text-muted);'>登録されている予定・授業はありません。</p>";
+              } else {
+                items.forEach(it => listDiv.innerHTML += it.html);
+              }
+
+              document.getElementById("dayDetailModal").style.display = "flex";
+            });
+          });
+        });
+      });
+    }
+
+    function cancelWeeklyLessonForDate(dateKey, weeklyId, dayOfWeek) {
+      const c = { id: `cancel_${dateKey}_${weeklyId}`, date: dateKey, weeklyId };
+      db.transaction(["cancelledWeekly"], "readwrite").objectStore("cancelledWeekly").put(c).onsuccess = function() {
+        openDayDetailModal(dateKey, dayOfWeek);
+        refreshAllViews();
+      };
+    }
+
+    function restoreWeeklyLesson(dateKey, weeklyId, dayOfWeek) {
+      const id = `cancel_${dateKey}_${weeklyId}`;
+      db.transaction(["cancelledWeekly"], "readwrite").objectStore("cancelledWeekly").delete(id).onsuccess = function() {
+        openDayDetailModal(dateKey, dayOfWeek);
+        refreshAllViews();
+      };
+    }
+
+    function saveCalendarEvent(e) {
+      e.preventDefault();
+      const date = document.getElementById("event-date").value;
+      const type = document.getElementById("event-type").value;
+      const title = document.getElementById("event-title").value.trim();
+
+      const ev = { id: "ev_" + Date.now(), date, type, title };
+      db.transaction(["events"], "readwrite").objectStore("events").put(ev).onsuccess = function() {
+        document.getElementById("event-title").value = "";
+        refreshAllViews();
+        document.getElementById("dayDetailModal").style.display = "none";
+      };
+    }
+
+    function deleteCalendarEvent(id, dateKey, dayOfWeek) {
+      if (confirm("この予定・授業設定を削除しますか？")) {
+        db.transaction(["events"], "readwrite").objectStore("events").delete(id).onsuccess = function() {
+          openDayDetailModal(dateKey, dayOfWeek);
+          refreshAllViews();
+        };
+      }
+    }
+
+    // --- 毎週の時間割（基本スケジュール）登録・編集機能 ---
+    function openWeeklyLessonModal() {
+      resetWeeklyForm();
+      renderWeeklyLessonList();
+      document.getElementById("weeklyLessonModal").style.display = "flex";
+    }
+
+    function resetWeeklyForm() {
+      document.getElementById("weekly-id").value = "";
+      document.getElementById("weekly-day").value = "1";
+      document.getElementById("weekly-title").value = "";
+      document.getElementById("weekly-submit-btn").textContent = "追加する";
+      document.getElementById("weekly-cancel-btn").style.display = "none";
+    }
+
+    function saveWeeklyLesson(e) {
+      e.preventDefault();
+      const id = document.getElementById("weekly-id").value || ("weekly_" + Date.now());
+      const dayOfWeek = document.getElementById("weekly-day").value;
+      const title = document.getElementById("weekly-title").value.trim();
+
+      const w = { id, dayOfWeek, title };
+      db.transaction(["weeklyLessons"], "readwrite").objectStore("weeklyLessons").put(w).onsuccess = function() {
+        resetWeeklyForm();
+        renderWeeklyLessonList();
+        refreshAllViews();
+      };
+    }
+
+    function editWeeklyLesson(id) {
+      db.transaction(["weeklyLessons"], "readonly").objectStore("weeklyLessons").get(id).onsuccess = function(e) {
+        const w = e.target.result;
+        if (!w) return;
+        document.getElementById("weekly-id").value = w.id;
+        document.getElementById("weekly-day").value = w.dayOfWeek;
+        document.getElementById("weekly-title").value = w.title;
+        document.getElementById("weekly-submit-btn").textContent = "更新する";
+        document.getElementById("weekly-cancel-btn").style.display = "inline-block";
+      };
+    }
+
+    function renderWeeklyLessonList() {
+      safeGetAll("weeklyLessons", (weeklyLessons) => {
+        const list = document.getElementById("weekly-lesson-list");
+        if (!list) return;
+        list.innerHTML = "";
+        const days = ["", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日"];
+
+        weeklyLessons.sort((a, b) => {
+          if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
+          return getPeriodOrderNum(a.title) - getPeriodOrderNum(b.title);
+        });
+
+        weeklyLessons.forEach(w => {
+          list.innerHTML += `
+            <li>
+              <span><strong>[${days[w.dayOfWeek]}]</strong> ${escapeHtml(w.title)}</span>
+              <div>
+                <button class="btn btn-secondary btn-sm" onclick="editWeeklyLesson('${w.id}')">編集</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteWeeklyLesson('${w.id}')">削除</button>
+              </div>
+            </li>`;
+        });
+      });
+    }
+
+    function deleteWeeklyLesson(id) {
+      if (confirm("毎週の授業設定（基本スケジュール）を削除しますか？")) {
+        db.transaction(["weeklyLessons"], "readwrite").objectStore("weeklyLessons").delete(id).onsuccess = function() {
+          resetWeeklyForm();
+          renderWeeklyLessonList();
+          refreshAllViews();
+        };
+      }
+    }
+
+    function renderTodoList(fetchedTodos) {
+      const kw = document.getElementById("search-keyword") ? document.getElementById("search-keyword").value.toLowerCase().trim() : "";
+      const folderFilter = document.getElementById("search-folder") ? document.getElementById("search-folder").value : "";
+      const statusFilter = document.getElementById("search-status") ? document.getElementById("search-status").value : "active";
+      const priorityFilter = document.getElementById("search-priority") ? document.getElementById("search-priority").value : "";
+      const metaFilter = document.getElementById("search-has-meta") ? document.getElementById("search-has-meta").value : "";
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const applyFilters = (todos) => {
+        const filtered = todos.filter(t => {
+          if (kw) {
+            const linkText = (t.links || []).map(l => l.title + l.url).join(" ");
+            const fileText = (t.files || []).map(f => f.name).join(" ");
+            const recText = t.record ? Object.values(t.record).join(" ") : "";
+            const fullText = (t.title + " " + t.folder + " " + (t.memo||"") + " " + recText + " " + linkText + " " + fileText).toLowerCase();
+            if (!fullText.includes(kw)) return false;
+          }
+
+          if (folderFilter && t.folder !== folderFilter) return false;
+          if (priorityFilter && t.priority !== priorityFilter) return false;
+
+          if (statusFilter === 'active' && t.status === 'completed') return false;
+          if (statusFilter === 'completed' && t.status !== 'completed') return false;
+          if (statusFilter === 'overdue' && (t.status === 'completed' || !t.dueDate || t.dueDate >= todayStr)) return false;
+
+          if (metaFilter === 'record' && (!t.record || !Object.values(t.record).some(v => v.trim() !== ''))) return false;
+          if (metaFilter === 'attachment' && (!t.links || t.links.length === 0) && (!t.files || t.files.length === 0)) return false;
+
+          return true;
+        });
+
+        const tbody = document.getElementById("full-todo-list");
+        if (tbody) {
+          tbody.innerHTML = "";
+          filtered.sort(sortRule).forEach(t => tbody.appendChild(createTodoRow(t, true)));
+        }
+      };
+
+      if (fetchedTodos) applyFilters(fetchedTodos);
+      else safeGetAll("todos", applyFilters);
+    }
+
+    function sortRule(a, b) {
+      const today = new Date().toISOString().split('T')[0];
+      const aOverdue = a.dueDate && a.dueDate < today;
+      const bOverdue = b.dueDate && b.dueDate < today;
+      if (aOverdue && !bOverdue) return -1;
+      if (!aOverdue && bOverdue) return 1;
+      if (a.dueDate && b.dueDate && a.dueDate !== b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+      const pMap = { "高": 1, "中": 2, "低": 3 };
+      return (pMap[a.priority] || 2) - (pMap[b.priority] || 2);
+    }
+
+    function createTodoRow(todo, showActions) {
+      const tr = document.createElement("tr");
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      if (todo.status === 'completed') tr.classList.add("is-completed");
+      else if (todo.dueDate && todo.dueDate < todayStr) tr.classList.add("is-overdue");
+
+      let repeatBadge = todo.repeat && todo.repeat !== 'none' ? `<span class="badge badge-repeat">${todo.repeat === 'monthly' ? '毎月' : '毎年'}</span>` : '';
+      const pBadge = `<span class="badge badge-${todo.priority === '高' ? 'high' : todo.priority === '中' ? 'mid' : 'low'}">${todo.priority}</span>${repeatBadge}`;
+      
+      tr.innerHTML = `
+        <td><input type="checkbox" ${todo.status === 'completed' ? 'checked' : ''} onchange="toggleTodoStatus('${todo.id}', this.checked)"></td>
+        <td><strong>${escapeHtml(todo.title)}</strong></td>
+        <td>${escapeHtml(todo.folder || '-')}</td>
+        <td>${todo.scheduledDate || '-'}</td>
+        <td>${todo.dueDate || '-'}</td>
+        <td>${pBadge}</td>
+        ${showActions ? `<td>${escapeHtml(todo.assignee || '-')}</td>` : ''}
+        <td><button class="btn btn-secondary btn-sm" onclick="editTodo('${todo.id}')">編集・記録</button></td>
+      `;
+      return tr;
+    }
+
+    function openTodoModal() {
+      document.getElementById("todoForm").reset();
+      document.getElementById("todo-id").value = "";
+      currentLinks = [];
+      currentFiles = [];
+      renderAttachments();
+      document.getElementById("modalTitle").textContent = "新規Todo・業務記録";
+      document.getElementById("todoModal").style.display = "flex";
+    }
+
+    function closeTodoModal() {
+      document.getElementById("todoModal").style.display = "none";
+    }
+
+    function saveTodo(e) {
+      e.preventDefault();
+      
+      const id = document.getElementById("todo-id").value || "todo_" + Date.now();
+      const title = document.getElementById("todo-title").value.trim();
+
+      const tx = db.transaction(["todos"], "readwrite");
+      const store = tx.objectStore("todos");
+
+      store.get(id).onsuccess = function(event) {
+        const existing = event.target.result || {};
+        const newTodo = {
+          ...existing,
+          id,
+          title,
+          folder: document.getElementById("todo-folder").value,
+          repeat: document.getElementById("todo-repeat").value,
+          scheduledDate: document.getElementById("todo-scheduledDate").value,
+          dueDate: document.getElementById("todo-dueDate").value,
+          priority: document.getElementById("todo-priority").value,
+          assignee: document.getElementById("todo-assignee").value,
+          status: existing.status || "active",
+          updatedAt: new Date().toISOString(),
+          record: {
+            content: document.getElementById("todo-record-content").value,
+            result: document.getElementById("todo-record-result").value,
+            reflection: document.getElementById("todo-record-reflection").value,
+            improvement: document.getElementById("todo-record-improvement").value,
+            handover: document.getElementById("todo-record-handover").value
+          },
+          links: currentLinks,
+          files: currentFiles
+        };
+
+        if (!existing.createdAt) newTodo.createdAt = new Date().toISOString();
+
+        store.put(newTodo).onsuccess = function() {
+          closeTodoModal();
+          refreshAllViews();
+        };
+      };
+    }
+
+    function editTodo(id) {
+      db.transaction(["todos"], "readonly").objectStore("todos").get(id).onsuccess = function(e) {
+        const todo = e.target.result;
+        if (!todo) return;
+
+        document.getElementById("todo-id").value = todo.id;
+        document.getElementById("todo-title").value = todo.title;
+        document.getElementById("todo-folder").value = todo.folder || "";
+        document.getElementById("todo-repeat").value = todo.repeat || "none";
+        document.getElementById("todo-scheduledDate").value = todo.scheduledDate || "";
+        document.getElementById("todo-dueDate").value = todo.dueDate || "";
+        document.getElementById("todo-priority").value = todo.priority || "中";
+        document.getElementById("todo-assignee").value = todo.assignee || "";
+
+        const rec = todo.record || {};
+        document.getElementById("todo-record-content").value = rec.content || "";
+        document.getElementById("todo-record-result").value = rec.result || "";
+        document.getElementById("todo-record-reflection").value = rec.reflection || "";
+        document.getElementById("todo-record-improvement").value = rec.improvement || "";
+        document.getElementById("todo-record-handover").value = rec.handover || "";
+
+        currentLinks = todo.links || [];
+        currentFiles = todo.files || [];
+        renderAttachments();
+
+        document.getElementById("modalTitle").textContent = "Todo・業務記録の編集";
+        document.getElementById("todoModal").style.display = "flex";
+      };
+    }
+
+    function toggleTodoStatus(id, isChecked) {
+      const tx = db.transaction(["todos"], "readwrite");
+      const store = tx.objectStore("todos");
+      store.get(id).onsuccess = function(e) {
+        const todo = e.target.result;
+        if (todo) {
+          todo.status = isChecked ? "completed" : "active";
+          todo.completedAt = isChecked ? new Date().toISOString() : null;
+          store.put(todo);
+
+          if (isChecked && todo.repeat && todo.repeat !== 'none') {
+            createNextRepeatTodo(todo, store);
+          }
+        }
+      };
+      tx.oncomplete = () => refreshAllViews();
+    }
+
+    function createNextRepeatTodo(todo, store) {
+      const nextTodo = { ...todo };
+      nextTodo.id = "todo_" + Date.now();
+      nextTodo.status = "active";
+      nextTodo.completedAt = null;
+      nextTodo.createdAt = new Date().toISOString();
+
+      const addDate = (dateStr, isYear) => {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        if (isYear) d.setFullYear(d.getFullYear() + 1);
+        else d.setMonth(d.getMonth() + 1);
+        return d.toISOString().split('T')[0];
+      };
+
+      const isYear = todo.repeat === 'yearly';
+      nextTodo.scheduledDate = addDate(todo.scheduledDate, isYear);
+      nextTodo.dueDate = addDate(todo.dueDate, isYear);
+
+      store.put(nextTodo);
+    }
+
+    function addUrlLink() {
+      const url = document.getElementById("link-url-input").value.trim();
+      const title = document.getElementById("link-title-input").value.trim() || url;
+      if (!url) return;
+      currentLinks.push({ url, title });
+      document.getElementById("link-url-input").value = "";
+      document.getElementById("link-title-input").value = "";
+      renderAttachments();
+    }
+
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        currentFiles.push({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: evt.target.result
+        });
+        renderAttachments();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function renderAttachments() {
+      const urlUl = document.getElementById("url-list-display");
+      urlUl.innerHTML = "";
+      currentLinks.forEach((l, idx) => {
+        urlUl.innerHTML += `<li><a href="${escapeHtml(l.url)}" target="_blank" style="color:var(--secondary-color); text-decoration:none; font-weight:500;">${escapeHtml(l.title)}</a> <button type="button" class="btn btn-danger btn-sm" onclick="currentLinks.splice(${idx},1);renderAttachments();">削除</button></li>`;
+      });
+
+      const fileUl = document.getElementById("file-list-display");
+      fileUl.innerHTML = "";
+      currentFiles.forEach((f, idx) => {
+        fileUl.innerHTML += `<li><span>📎 ${escapeHtml(f.name)} (${Math.round(f.size/1024)}KB)</span> <button type="button" class="btn btn-danger btn-sm" onclick="currentFiles.splice(${idx},1);renderAttachments();">削除</button></li>`;
+      });
+    }
+
+    function renderFolderList() {
+      safeGetAll("folders", (folders) => {
+        const list = document.getElementById("folder-list");
+        if (!list) return;
+        list.innerHTML = "";
+        folders.forEach(f => {
+          const nameDisplay = f.parent ? `${f.parent} / ${f.name}` : f.name;
+          list.innerHTML += `<tr><td><strong>${escapeHtml(nameDisplay)}</strong></td><td>${escapeHtml(f.parent || '-')}</td><td><button class="btn btn-danger btn-sm" onclick="deleteFolder('${escapeHtml(f.name)}')">削除</button></td></tr>`;
+        });
+      });
+    }
+
+    function addFolder() {
+      const nameInput = document.getElementById("new-folder-name");
+      const name = nameInput ? nameInput.value.trim() : "";
+      const parent = document.getElementById("new-folder-parent") ? document.getElementById("new-folder-parent").value : "";
+      
+      if (!name) {
+        alert("フォルダ名を入力してください。");
+        return;
+      }
+
+      const tx = db.transaction(["folders"], "readwrite");
+      const store = tx.objectStore("folders");
+
+      const req = store.put({ name, parent });
+      req.onsuccess = function() {
+        if (nameInput) nameInput.value = "";
+        renderFolderList();
+        updateFolderSelectOptions();
+        alert(`フォルダ「${name}」を追加しました！`);
+      };
+    }
+
+    function deleteFolder(name) {
+      safeGetAll("todos", (todos) => {
+        const count = todos.filter(t => t.folder && t.folder.includes(name)).length;
+        if (count > 0) {
+          alert(`【警告】このフォルダに関連するTodoが ${count} 件存在するため削除できません。`);
+          return;
+        }
+        if (confirm(`フォルダ「${name}」を削除しますか？`)) {
+          const delTx = db.transaction(["folders"], "readwrite");
+          delTx.objectStore("folders").delete(name).onsuccess = function() {
+            renderFolderList();
+            updateFolderSelectOptions();
+          };
+        }
+      });
+    }
+
+    function loadFolderRecord() {
+      const folder = document.getElementById("record-folder-select").value;
+      const year = document.getElementById("record-year-input").value;
+      if (!folder || !year) return;
+
+      const id = `${year}_${folder}`;
+      try {
+        db.transaction(["folderRecords"], "readonly").objectStore("folderRecords").get(id).onsuccess = function(e) {
+          const rec = e.target.result || {};
+          document.getElementById("fr-summary").value = rec.summary || "";
+          document.getElementById("fr-result").value = rec.result || "";
+          document.getElementById("fr-reflection").value = rec.reflection || "";
+          document.getElementById("fr-improvement").value = rec.improvement || "";
+        };
+      } catch (err) {}
+    }
+
+    function saveFolderRecord(e) {
+      e.preventDefault();
+      const folder = document.getElementById("record-folder-select").value;
+      const year = document.getElementById("record-year-input").value;
+      const id = `${year}_${folder}`;
+
+      const data = {
+        id, year, folder,
+        summary: document.getElementById("fr-summary").value,
+        result: document.getElementById("fr-result").value,
+        reflection: document.getElementById("fr-reflection").value,
+        improvement: document.getElementById("fr-improvement").value,
+        updatedAt: new Date().toISOString()
+      };
+
+      db.transaction(["folderRecords"], "readwrite").objectStore("folderRecords").put(data).onsuccess = function() {
+        alert("振り返りを保存しました。");
+      };
+    }
+
+    function openTemplateModal() {
+      document.getElementById("templateForm").reset();
+      document.getElementById("templateModal").style.display = "flex";
+    }
+
+    function saveTemplate(e) {
+      e.preventDefault();
+      const tpl = {
+        id: "tpl_" + Date.now(),
+        title: document.getElementById("tpl-title").value.trim(),
+        folder: document.getElementById("tpl-folder").value,
+        priority: document.getElementById("tpl-priority").value,
+        memo: document.getElementById("tpl-memo").value
+      };
+
+      db.transaction(["templates"], "readwrite").objectStore("templates").put(tpl).onsuccess = function() {
+        document.getElementById("templateModal").style.display = "none";
+        renderTemplateList();
+      };
+    }
+
+    function renderTemplateList() {
+      safeGetAll("templates", (templates) => {
+        const tbody = document.getElementById("template-list");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+        templates.forEach(t => {
+          tbody.innerHTML += `
+            <tr>
+              <td><strong>${escapeHtml(t.title)}</strong></td>
+              <td>${escapeHtml(t.folder || '-')}</td>
+              <td>${escapeHtml(t.priority)}</td>
+              <td>
+                <button class="btn btn-sm" onclick="createTodoFromTemplate('${t.id}')">このテンプレートからTodo作成</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteTemplate('${t.id}')">削除</button>
+              </td>
+            </tr>`;
+        });
+      });
+    }
+
+    function createTodoFromTemplate(tplId) {
+      db.transaction(["templates"], "readonly").objectStore("templates").get(tplId).onsuccess = function(e) {
+        const t = e.target.result;
+        if (!t) return;
+        openTodoModal();
+        document.getElementById("todo-title").value = t.title;
+        document.getElementById("todo-folder").value = t.folder;
+        document.getElementById("todo-priority").value = t.priority;
+        document.getElementById("todo-record-content").value = t.memo || "";
+      };
+    }
+
+    function deleteTemplate(id) {
+      if (confirm("テンプレートを削除しますか？")) {
+        db.transaction(["templates"], "readwrite").objectStore("templates").delete(id).onsuccess = () => renderTemplateList();
+      }
+    }
+
+    function downloadZip() {
+      const zip = new JSZip();
+
+      safeGetAll("todos", (todos) => {
+        safeGetAll("folders", (folders) => {
+          safeGetAll("folderRecords", (folderRecords) => {
+            safeGetAll("templates", (templates) => {
+              safeGetAll("events", (events) => {
+                safeGetAll("weeklyLessons", (weeklyLessons) => {
+                  safeGetAll("cancelledWeekly", (cancelledWeekly) => {
+                    const backupData = {
+                      version: "1.5",
+                      exportedAt: new Date().toISOString(),
+                      todos, folders, folderRecords, templates, events, weeklyLessons, cancelledWeekly
+                    };
+
+                    zip.file("school_data.json", JSON.stringify(backupData, null, 2));
+
+                    const now = new Date();
+                    const timestamp = now.toISOString().replace(/[:.]/g, "-");
+
+                    zip.generateAsync({ type: "blob" }).then(function(content) {
+                      const a = document.createElement("a");
+                      a.href = URL.createObjectURL(content);
+                      a.download = `school_backup_${timestamp}.zip`;
+                      a.click();
+
+                      const setTx = db.transaction(["settings"], "readwrite");
+                      setTx.objectStore("settings").put({ key: "lastBackup", value: now.toISOString() });
+                      setTx.oncomplete = function() {
+                        document.getElementById("backup-alert").style.display = "none";
+                        checkBackupStatus();
+                      };
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    }
+
+    function restoreZip(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (!confirm("【警告】現在の全データが上書きされます。復元を実行しますか？")) return;
+
+      const zip = new JSZip();
+      zip.loadAsync(file).then(function(z) {
+        if (z.file("school_data.json")) {
+          z.file("school_data.json").async("string").then(function(str) {
+            const data = JSON.parse(str);
+            const tx = db.transaction(["todos", "folders", "folderRecords", "templates", "events", "weeklyLessons", "cancelledWeekly"], "readwrite");
+
+            tx.objectStore("todos").clear();
+            tx.objectStore("folders").clear();
+            tx.objectStore("folderRecords").clear();
+            tx.objectStore("templates").clear();
+            tx.objectStore("events").clear();
+            tx.objectStore("weeklyLessons").clear();
+            tx.objectStore("cancelledWeekly").clear();
+
+            (data.todos || []).forEach(t => tx.objectStore("todos").put(t));
+            (data.folders || []).forEach(f => tx.objectStore("folders").put(f));
+            (data.folderRecords || []).forEach(fr => tx.objectStore("folderRecords").put(fr));
+            (data.templates || []).forEach(tpl => tx.objectStore("templates").put(tpl));
+            (data.events || []).forEach(ev => tx.objectStore("events").put(ev));
+            (data.weeklyLessons || []).forEach(w => tx.objectStore("weeklyLessons").put(w));
+            (data.cancelledWeekly || []).forEach(c => tx.objectStore("cancelledWeekly").put(c));
+
+            tx.oncomplete = function() {
+              alert("データの復元が完了しました！");
+              refreshAllViews();
+            };
+          });
+        } else {
+          alert("【エラー】無効なバックアップファイルです。");
+        }
+      });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
